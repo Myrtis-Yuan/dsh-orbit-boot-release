@@ -1,0 +1,25 @@
+# 文本一律按 LF 存库，避免 Windows 上检出后出现「整文件都变了」的假 diff
+* text=auto eol=lf
+
+# 二进制：不要做任何换行/文本转换
+*.mp3 binary
+*.mp4 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.woff binary
+*.woff2 binary
+
+# 批处理按 Windows 传统用 CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# 脚本与源码保持 LF
+*.sh  text eol=lf
+*.mjs text eol=lf
+*.js  text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.md  text eol=lf

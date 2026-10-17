@@ -7,9 +7,6 @@ Copyright (c) 2026 沈宏宏                 —— 上游 dsh-startup-screen �
 宿主半侧的路由与注入机制、配置读写、语音/音效通道、设置面板骨架与四套冒烟测试的
 形式沿用上游；序列文案、六步脚本、全部动效实现与样式表为本次重写。
 
-按 MIT 的要求，上游的版权声明必须随源码一并保留 —— 所以上面两行都在，
-不是笔误，请不要删掉第一行以外的那一行。
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

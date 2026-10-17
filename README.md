@@ -94,8 +94,7 @@ node tools/install-desktop-local.mjs --dry-run  # 只看会改哪些文件
 
 它会：包体复制到 `~/.dsh/extensions/dsh-orbit-boot` 与
 `<profile>/node_modules/dsh-orbit-boot`、在 profile 清单登记 `file:` 依赖、
-把包名并进 `dsh.profile.bundles`。全程持 `<profile>/lock`，不和桌面端自己的
-插件操作打架。
+把包名并进 `dsh.profile.bundles`。全程持 `<profile>/lock`。
 
 卸载：
 
@@ -130,11 +129,7 @@ node tools/uninstall-desktop-local.mjs
 | 视觉 | **动效风格**、主题（深色 / 暖白底板）、强调色、故障色 |
 | 文案 | 品牌三行、黑幕两行、终幕方框、页脚 |
 
-配置落盘在 `$DSH_HOME/dsh-orbit-boot.json`。
-
-**改完不用重启 DSH。** 运行时会在每次开场前向 `/dsh-orbit/config`（`no-store`）
-拉一次最新配置，覆盖 index.html 里那份页面加载时的快照；拉不到就退回快照继续播，
-不会因为同步失败卡住开屏。
+配置落盘在 `$DSH_HOME/dsh-orbit-boot.json`。改完设置**不用重启 DSH**，刷新页面即生效。
 
 ---
 
@@ -165,44 +160,63 @@ docs/                 README 用的截图
 cordis.patch.yml      bundle 层声明
 ```
 
-跑测试：
+本地开发：
 
 ```bash
-node test/smoke-host.mjs
-node test/smoke-splash.mjs
-node test/smoke-client.mjs
-node test/smoke-desktop-boot.mjs
-# 或 npm test —— 共 275 项断言
+npm test   # 四套冒烟测试，共 275 项断言
 ```
-
-改完怎么生效：
-
-| 改了什么 | 怎么生效 |
-|---|---|
-| `lib/splash.js` / `lib/splash.css` / `lib/assets/*` | 刷新页面即可（按请求实时下发，按 mtime 缓存） |
-| `lib/index.js`（宿主半侧） / `lib/client.js`（设置面板） | 完全退出桌面端再打开 |
-| `test/*` | 直接跑，不需要装 |
 
 ---
 
-## 素材与版权
+## 致谢与来源
 
-这个项目**不是从零写的**，发布前请先读 [THIRD-PARTY.md](THIRD-PARTY.md)。要点：
+这个插件的工程骨架和两套视觉语言都不是我发明的，它还依赖上游项目已经验证过的做法。
+在此逐条说清楚。
 
-- **代码**：宿主半侧的路由、注入、配置读写、语音通道、设置面板骨架沿用上游
-  [dsh-startup-screen](https://github.com/6shenhonghong9/dsh-startup-screen)（MIT）；
-  四条动效、样式表、两套主题是本仓库重写的。
-- **音频**（`lib/assets/*.mp3`）：沿用上游，**上游注明取自第三方视频**。
-  这是公开发布时最大的一处风险，请自行决定是否替换。
-- **视频与图片**（`lib/assets/logo.mp4`、`logo-plate.png`）：由仓库所有者提供，
-  本项目的许可**不覆盖**它们。
+### 1. [dsh-startup-screen](https://github.com/6shenhonghong9/dsh-startup-screen) — MIT，© 2026 沈宏宏
 
-`LICENSE` 里保留了两行版权声明（上游一行 + 本项目一行），这是 MIT 的硬要求，
-请不要删。
+**用到了**：宿主半侧的路由注册与 `index.html` 注入（`webServer.register` + `tapIndex`）、
+配置落盘与夹取、素材路由的白名单与 Range、语音（Web Speech）与音效（WebAudio）通道、
+设置面板骨架、时间线引擎（`wait` / `waiters` / `releaseAll` / 跳过）、六幕结构与阶段字段、
+四套冒烟测试的形式。按"有内容的行"算，现在这份代码约 **91%** 的行能在上游找到对应。
+
+**改动**：动效层（乱码收敛解码、故障带原地换词、拉丝与光晕、同心轨道环与星野）、
+整套样式表、两套动效风格的切换、素材压制与本地安装器是本仓库重写的，约 **26%** 的行是新写的。
+没有复制它的动效代码，但那套"六幕 + 逐帧编排"的骨架是照搬的。
+
+感谢作者把转场和 `dsu-out` 那段收尾做得这么细——一层层对齐之后才看得出好处在哪。
+
+### 2. 《鸣潮》Wuthering Waves — 库洛游戏
+
+**用到了**：机构名称（深空联合 · 星炬学院）、角色，以及**拉海洛地区**的设计语言。
+配色（近黑底板、橄榄绿、暖米白）、细网格、同心圆弧、虚线刻度、技术档案式版式，
+都是照着拉海洛的视觉语言做的；「轨道」风格那四条动效语汇也是照这一套语言实现的。
+
+**改动**：没有复制任何游戏内素材。`lib/assets` 里的标志视频与静态标志板由项目作者
+自行制作与压制。本插件最早是一版更浅的「暖白档案」外观，现在的复古未来主义外观
+是本仓库重做的——但手法仍是拉海洛那一套。
+
+**版权**：相关权利归库洛游戏所有。本项目是**非官方同人作品**，非商业、不收取费用、
+不暗示官方背书。
+
+### 3. DeepSeek Harness
+
+**用到了**：宿主平台本身。宿主半侧的写法（`ctx.webServer.register` 路由、
+`cordis.patch.yml` 的 bundle patch 层、`dsh.client` 浏览器半侧约定）都来自 DSH 的插件规范。
+
+---
+
+## 素材清单
+
+| 文件 | 来源 |
+|---|---|
+| `lib/assets/logo.mp4`、`logo-plate.png` | 项目作者自行制作 |
+| `lib/assets/line-1..6.mp3`、`sfx-tick.mp3`、`sfx-ticks-run.mp3` | 沿用上游，未作改动 |
+| `docs/*.png`、`docs/*.jpg` | 本仓库运行截图 |
 
 ---
 
 ## License
 
-[MIT](LICENSE) —— 覆盖本仓库作者原创的代码、文案与样式；不覆盖上游素材与
-`lib/assets/` 下的第三方媒体，详见 [THIRD-PARTY.md](THIRD-PARTY.md)。
+[MIT](LICENSE) —— 覆盖本仓库作者编写的代码。游戏 IP、角色与机构名不属于本仓库，
+详见 [THIRD-PARTY.md](THIRD-PARTY.md)。

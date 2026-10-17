@@ -1,0 +1,1605 @@
+/* ============================================================================
+ * dsh-orbit-boot — 启动界面 / 启动动画样式
+ * ----------------------------------------------------------------------------
+ * 深色复古未来主义（retro-futurism）版：
+ *   近黑底板 + 橄榄绿 / 暖米白 + 赭石强调 → 细网格 / 同心圆弧 / 虚线刻度 →
+ *   超宽字距的等宽大写副标题 → 环形准星 → 色散故障揭幕。
+ *
+ * 两套外观共用同一份版式，只换设计令牌：
+ *   默认（无类名 / .dob-dark）  复古未来主义深色
+ *   .dob-light                  参考片原色的暖白「技术档案」底板
+ *
+ * 全部字体都取系统自带字体，零网络依赖：
+ *   --dob-din   Bahnschrift（Windows 10+ 自带 DIN 1451 风格，窄体技术字）
+ *   --dob-mono  Cascadia Mono / Consolas（等宽字距小字）
+ *   --dob-zh    微软雅黑（中文主字与副标题）
+ * ========================================================================== */
+
+#dsh-orbit-root,
+#dsh-orbit-root *,
+#dsh-orbit-root *::before,
+#dsh-orbit-root *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── 设计令牌 ─────────────────────────────────────────────────────────────
+   深色是基准，.dob-dark 与基准共用同一组值（老版本运行时只会挂 dob-dark）。 */
+#dsh-orbit-root,
+#dsh-orbit-root.dob-dark {
+  /* 配色：近黑底 / 暖米白主字 / 橄榄灰副字 / 赭石强调，全部取自风格参考图 */
+  --dob-bg: #06070a;
+  --dob-bg-2: #0c0f13;
+  --dob-ink: #efe6d4;
+  --dob-ink-soft: #b6b79a;
+  --dob-muted: #7d7b69;
+  --dob-hair: rgba(233, 226, 208, 0.16);
+  --dob-hair-soft: rgba(233, 226, 208, 0.062);
+  --dob-accent: #c8b184;
+  --dob-glitch-a: #cf8f6a;
+  --dob-glitch-b: #7f9c8e;
+  --dob-box-bg: #e9e2d0;
+  --dob-box-ink: #0a0b0d;
+  --dob-sub-glow: 0 0 8px rgba(0, 0, 0, 0.85);
+
+  --dob-plate-bg:
+    radial-gradient(118% 88% at 76% 10%, rgba(233, 226, 208, 0.07) 0%, rgba(233, 226, 208, 0) 56%),
+    radial-gradient(90% 70% at 12% 96%, rgba(150, 168, 132, 0.06) 0%, rgba(150, 168, 132, 0) 60%),
+    linear-gradient(168deg, var(--dob-bg-2) 0%, var(--dob-bg) 44%, var(--dob-bg) 100%);
+  --dob-wm-bg: linear-gradient(180deg, rgba(233, 226, 208, 0.05), rgba(233, 226, 208, 0));
+  --dob-vignette-bg:
+    radial-gradient(122% 104% at 50% 42%, rgba(0, 0, 0, 0) 46%, rgba(0, 0, 0, 0.55) 100%),
+    radial-gradient(62% 42% at 50% 45%, rgba(233, 226, 208, 0.05) 0%, rgba(233, 226, 208, 0) 100%);
+  --dob-scanline-bg: linear-gradient(
+    180deg,
+    rgba(233, 226, 208, 0) 0%,
+    rgba(233, 226, 208, 0.05) 58%,
+    rgba(233, 226, 208, 0.11) 86%,
+    rgba(233, 226, 208, 0.18) 97%,
+    rgba(233, 226, 208, 0) 100%
+  );
+  --dob-wash-bg: #33352d;
+  --dob-flash-bg: #f6efdd;
+  --dob-bloom-c: 246, 239, 221;
+  /* 正在解析中的字形：偏冷、偏暗，和锁定后的暖米白拉开对比 */
+  --dob-decode-ink: rgba(150, 168, 132, 0.82);
+  --dob-star-ink: rgba(233, 226, 208, 0.9);
+  --dob-glitch-blend: screen;
+  --dob-peak-glow: 0 0 14px rgba(127, 156, 142, 0.5);
+  --dob-grain-opacity: 0.07;
+  --dob-wm-opacity: 0.9;
+  --dob-ridge: rgba(233, 226, 208, 0.05);
+
+  /* 字体全部取系统自带，不下发 webfont（启动零抖动）。 */
+  --dob-din: "Bahnschrift", "DIN Alternate", "DIN Condensed", "Archivo", "Oswald",
+    "Arial Narrow", "Liberation Sans Narrow", "Ubuntu Condensed", "Roboto Condensed",
+    "Noto Sans Display", "HarmonyOS Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+  --dob-mono: "Cascadia Mono", "SFMono-Regular", "Consolas", "Menlo", "DejaVu Sans Mono",
+    "Liberation Mono", "Noto Sans Mono", ui-monospace, monospace;
+  --dob-zh: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC",
+    "Source Han Sans SC", "Noto Sans CJK SC", "Noto Sans SC", "WenQuanYi Micro Hei",
+    sans-serif;
+
+  --dob-speed: 1;
+
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  overflow: hidden;
+  background: #000;
+  color: var(--dob-ink);
+  font-family: var(--dob-din);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+  contain: layout paint style;
+}
+
+/* ── 暖白档案底板（设置页主题选「浅色」时）────────────────────────────── */
+#dsh-orbit-root.dob-light {
+  --dob-bg: #e5e3df;
+  --dob-bg-2: #eceae6;
+  --dob-ink: #0a0a0a;
+  --dob-ink-soft: #3a3936;
+  --dob-muted: #7a7873;
+  --dob-hair: rgba(10, 10, 10, 0.16);
+  --dob-hair-soft: rgba(10, 10, 10, 0.07);
+  --dob-box-bg: #0a0a0a;
+  --dob-box-ink: #ffffff;
+  --dob-sub-glow: 0 0 6px rgba(255, 255, 255, 0.9);
+
+  --dob-plate-bg:
+    radial-gradient(120% 90% at 78% 12%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(168deg, var(--dob-bg-2) 0%, var(--dob-bg) 42%, var(--dob-bg) 100%);
+  --dob-wm-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  --dob-vignette-bg:
+    radial-gradient(122% 104% at 50% 42%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, 0.055) 100%),
+    radial-gradient(60% 40% at 50% 45%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 100%);
+  --dob-scanline-bg: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.045) 58%,
+    rgba(0, 0, 0, 0.1) 86%,
+    rgba(0, 0, 0, 0.16) 97%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  --dob-wash-bg: #8b8a88;
+  --dob-flash-bg: #ffffff;
+  --dob-bloom-c: 255, 255, 255;
+  --dob-decode-ink: rgba(90, 96, 74, 0.85);
+  --dob-star-ink: rgba(20, 22, 26, 0.75);
+  --dob-glitch-blend: multiply;
+  --dob-peak-glow: 0 0 14px rgba(41, 113, 184, 0.55);
+  --dob-grain-opacity: 0.05;
+  --dob-wm-opacity: 1;
+  --dob-ridge: rgba(10, 10, 10, 0.05);
+
+  background: #000;
+}
+
+/* ── 文字乱码解码 ────────────────────────────────────────────────────────
+   每个字是一个 .dob-glyph：正在解析的字带一点位移和暗色，锁定成正确字形时
+   回到本位并提亮。整个过程由 splash.js 的 decodeText 驱动，这里只负责观感。 */
+.dob-glyph {
+  display: inline-block;
+  white-space: pre;
+  color: var(--dob-decode-ink, inherit);
+  transform: translateY(0.06em);
+  transition: transform 180ms ease, color 220ms ease, opacity 220ms ease;
+}
+.dob-glyph.dob-locked {
+  color: inherit;
+  transform: none;
+}
+
+/* 中央标识与终幕标识统一取当前文字色 */
+.dob-logo svg,
+.dob-w3 svg { fill: currentColor; }
+
+/* 首屏兜底：脚本还没跑起来时也要先糊住整个窗口，避免闪出应用本体 */
+#dsh-orbit-root.dob-boot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #000;
+  z-index: 90;
+}
+
+#dsh-orbit-root.dob-gone {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 620ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── 底板 ───────────────────────────────────────────────────────────────── */
+.dob-plate {
+  position: absolute;
+  inset: 0;
+  background: var(--dob-plate-bg);
+  opacity: 0;
+}
+
+/* ── 星野 ────────────────────────────────────────────────────────────────
+   150 颗细星，位置在建 DOM 时随机铺好，之后只靠一个闪烁动画跑，
+   不再动 DOM —— 转场和终幕要用它当底。 */
+.dob-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  opacity: 0;
+  pointer-events: none;
+}
+.dob-stars svg { display: block; width: 100%; height: 100%; }
+.dob-star {
+  fill: var(--dob-star-ink);
+  animation-name: dob-twinkle;
+  animation-duration: 4.6s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.dob-stars.dob-bright { opacity: 1; filter: brightness(1.5); }
+@keyframes dob-twinkle {
+  0%, 100% { opacity: 0.18; }
+  46% { opacity: 1; }
+}
+
+/* ── 光速拉丝 ────────────────────────────────────────────────────────────
+   46 条从中心朝各个方向甩出去的细光条，角度在建 DOM 时定死，
+   这里只负责"甩出来再收回去"的那一下。 */
+.dob-warp {
+  position: absolute;
+  inset: 0;
+  z-index: 44;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.dob-warp > i {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  height: 1px;
+  transform-origin: 0 50%;
+  display: block;
+}
+.dob-warp > i > b {
+  display: block;
+  height: 100%;
+  width: 40vmax;
+  transform-origin: 0 50%;
+  transform: scaleX(0.04);
+  opacity: 0;
+  background: linear-gradient(90deg,
+    rgba(246, 239, 221, 0.92) 0%,
+    rgba(200, 177, 132, 0.45) 42%,
+    rgba(246, 239, 221, 0) 100%);
+}
+.dob-warp.dob-go { opacity: 1; }
+.dob-warp.dob-go > i > b {
+  animation-name: dob-streak;
+  animation-duration: 980ms;
+  animation-timing-function: cubic-bezier(0.16, 0.72, 0.2, 1);
+  animation-fill-mode: both;
+}
+@keyframes dob-streak {
+  0% { opacity: 0; transform: scaleX(0.04); }
+  12% { opacity: 1; }
+  46% { opacity: 0.72; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1.3); }
+}
+/* 拉丝的中心那一点光核 */
+.dob-warp::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 22vmin;
+  height: 22vmin;
+  margin: -11vmin 0 0 -11vmin;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(circle,
+    rgba(246, 239, 221, 0.9) 0%,
+    rgba(246, 239, 221, 0.35) 34%,
+    rgba(246, 239, 221, 0) 72%);
+}
+.dob-warp.dob-go::after { animation: dob-core 1150ms ease-out 1 both; }
+@keyframes dob-core {
+  0% { opacity: 0; transform: scale(0.2); }
+  22% { opacity: 1; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(1.7); }
+}
+
+/* ── 同心虚线轨道环 + 沿环运行的光点 ────────────────────────────────────
+   和准星是同一套语汇：环上留缺口、光点沿环跑。缺口照旧留在正下方，
+   底部字幕永远不会被压到。 */
+.dob-rings {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 0;
+  height: 0;
+  z-index: 16;
+  opacity: 0;
+  transition: opacity 700ms ease;
+  pointer-events: none;
+}
+.dob-rings.dob-in { opacity: 1; }
+.dob-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  border-radius: 50%;
+  transform-origin: 50% 50%;
+}
+.dob-ring-a {
+  width: min(74vmin, 940px);
+  height: min(74vmin, 940px);
+  margin: calc(-0.5 * min(74vmin, 940px)) 0 0 calc(-0.5 * min(74vmin, 940px));
+  border: 1px dashed var(--dob-hair);
+  opacity: 0.55;
+  animation: dob-spin 46s linear infinite;
+}
+.dob-ring-b {
+  width: min(54vmin, 690px);
+  height: min(54vmin, 690px);
+  margin: calc(-0.5 * min(54vmin, 690px)) 0 0 calc(-0.5 * min(54vmin, 690px));
+  border: 1px dotted var(--dob-hair);
+  opacity: 0.75;
+  animation: dob-spin 32s linear infinite reverse;
+}
+.dob-ring-c {
+  width: min(36vmin, 460px);
+  height: min(36vmin, 460px);
+  margin: calc(-0.5 * min(36vmin, 460px)) 0 0 calc(-0.5 * min(36vmin, 460px));
+  border: 1px solid var(--dob-hair-soft);
+  animation: dob-spin 22s linear infinite;
+}
+/* 载点：整块跟着转，光点挂在环的正上方，于是它就在环上跑 */
+.dob-runner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  transform-origin: 50% 50%;
+}
+.dob-runner s {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  display: block;
+  border-radius: 50%;
+  background: var(--dob-accent);
+  box-shadow: 0 0 10px rgba(200, 177, 132, 0.85);
+}
+.dob-runner-a {
+  width: min(74vmin, 940px);
+  height: min(74vmin, 940px);
+  margin: calc(-0.5 * min(74vmin, 940px)) 0 0 calc(-0.5 * min(74vmin, 940px));
+  animation: dob-spin 15s linear infinite;
+}
+.dob-runner-b {
+  width: min(54vmin, 690px);
+  height: min(54vmin, 690px);
+  margin: calc(-0.5 * min(54vmin, 690px)) 0 0 calc(-0.5 * min(54vmin, 690px));
+  animation: dob-spin 10.5s linear infinite reverse;
+}
+.dob-runner-b s { background: var(--dob-ink); box-shadow: 0 0 8px rgba(233, 226, 208, 0.8); }
+.dob-runner-c {
+  width: min(36vmin, 460px);
+  height: min(36vmin, 460px);
+  margin: calc(-0.5 * min(36vmin, 460px)) 0 0 calc(-0.5 * min(36vmin, 460px));
+  animation: dob-spin 7s linear infinite;
+}
+.dob-runner-c s { width: 4px; height: 4px; margin-left: -2px; top: -2px; }
+
+/* ── 薄椭圆轨道（终幕） ─────────────────────────────────────────────────── */
+.dob-ellipse {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: min(104vmin, 1320px);
+  height: min(34vmin, 430px);
+  margin: calc(-0.5 * min(34vmin, 430px)) 0 0 calc(-0.5 * min(104vmin, 1320px));
+  z-index: 15;
+  border: 1px solid var(--dob-hair);
+  border-radius: 50%;
+  opacity: 0;
+  transform: rotate(-16deg);
+  transition: opacity 900ms ease;
+  pointer-events: none;
+}
+.dob-ellipse.dob-in {
+  opacity: 0.5;
+  animation: dob-ellipse-drift 26s ease-in-out infinite;
+}
+@keyframes dob-ellipse-drift {
+  0%, 100% { transform: rotate(-16deg) scale(1); }
+  50% { transform: rotate(-13.4deg) scale(1.035); }
+}
+
+/* ── 复古未来主义装饰层：网格 / 同心弧 / 虚线刻度 / 圆点簇 / 菱形标 ────── */
+.dob-deco {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  opacity: 0;
+}
+/* 两档细网格：640px 一档是"结构"，64px 一档是"图纸" */
+.dob-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--dob-ridge) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--dob-ridge) 1px, transparent 1px),
+    linear-gradient(to right, var(--dob-hair-soft) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--dob-hair-soft) 1px, transparent 1px);
+  background-size: 640px 640px, 640px 640px, 64px 64px, 64px 64px;
+  -webkit-mask-image: radial-gradient(120% 100% at 50% 45%, #000 30%, transparent 92%);
+  mask-image: radial-gradient(120% 100% at 50% 45%, #000 30%, transparent 92%);
+}
+.dob-orbit {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+.dob-orbit-1 {
+  width: min(94vmin, 1200px);
+  height: min(94vmin, 1200px);
+  border: 1px solid var(--dob-hair-soft);
+}
+.dob-orbit-2 {
+  width: min(54vmin, 690px);
+  height: min(54vmin, 690px);
+  border: 1px dashed var(--dob-hair-soft);
+}
+/* 虚线刻度环：conic 出一圈细齿，再用径向渐变裁成一条窄环 */
+.dob-ticks {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: min(120vmin, 1520px);
+  height: min(120vmin, 1520px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--dob-hair) 0deg 0.35deg,
+    transparent 0.35deg 3deg
+  );
+  -webkit-mask-image: radial-gradient(closest-side, transparent 93%, #000 94%, #000 100%);
+  mask-image: radial-gradient(closest-side, transparent 93%, #000 94%, #000 100%);
+  opacity: 0.75;
+}
+/* 参考图里那种「●● ●● ◉」小圆点簇 */
+.dob-motif {
+  position: absolute;
+  left: 46px;
+  top: 248px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.dob-motif i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--dob-hair);
+}
+.dob-motif i:nth-child(2),
+.dob-motif i:nth-child(4) { background: var(--dob-hair); }
+.dob-motif i:nth-child(3) { border-color: var(--dob-accent); }
+.dob-diamond {
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  background: var(--dob-accent);
+  opacity: 0.55;
+  transform: rotate(45deg);
+}
+.dob-d-tl { left: 24px; }
+.dob-d-br { right: 24px; }
+
+/* 背景里若隐若现的档案面板（参考片右侧极淡的方块群） */
+.dob-watermark {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.dob-wm {
+  position: absolute;
+  background: var(--dob-wm-bg);
+  border: 1px solid var(--dob-hair-soft);
+}
+
+/* 细颗粒噪点，让大色块不"塑料" */
+.dob-grain {
+  position: absolute;
+  inset: -50%;
+  opacity: var(--dob-grain-opacity);
+  transition: opacity 300ms ease;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.6'/></svg>");
+}
+
+/* ── 经典风格（第一版）专用的三条动效 ────────────────────────────────────
+   动效风格选「经典」时才用得上：逐字渐显、掠过标识的扫光、过曝洗白。
+   默认的「轨道」风格走乱码解码 + 故障带 + 光速拉丝，不用这几条。 */
+
+/* 逐字渐显：用不透明度而非截断，居中排版不会因为字宽变化而抖动 */
+.dob-ch {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.16em);
+  transition: opacity 340ms ease, transform 340ms ease;
+}
+.dob-ch.dob-on { opacity: 1; transform: none; }
+
+/* 扫光：一条极淡的白色横条掠过标识 */
+.dob-sweep {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 42%;
+  left: -50%;
+  z-index: 42;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.055) 42%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.055) 58%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+}
+.dob-sweep.dob-go {
+  animation: dob-sweep 1150ms cubic-bezier(0.32, 0, 0.2, 1) forwards;
+}
+@keyframes dob-sweep {
+  from { left: -50%; }
+  to { left: 118%; }
+}
+
+/* 过曝洗白：黑 → 灰 → 底板 */
+.dob-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--dob-wash-bg);
+  opacity: 0;
+  z-index: 35;
+  pointer-events: none;
+}
+
+/* ── 第一幕：黑幕 + 标识动效 ─────────────────────────────────────────────
+   视频素材已经把底板用「黑场点」压成纯黑（见 tools/build-assets.py），
+   和这层黑幕同为 #000 —— 画面上看不到任何矩形边界，只有标志本体浮在黑里。
+   素材拿不到时才回落到内置 SVG 鲸鱼标识。 */
+.dob-black {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: grid;
+  place-items: center;
+  z-index: 40;
+  opacity: 1;
+}
+.dob-black-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 560ms ease, transform 560ms ease;
+}
+.dob-black-inner.dob-in {
+  opacity: 1;
+  transform: none;
+}
+.dob-black-inner.dob-out {
+  opacity: 0;
+  transform: scale(1.045);
+  transition: opacity 620ms ease, transform 620ms ease;
+}
+.dob-black-video {
+  display: block;
+  width: min(820px, 52vw);
+  height: auto;
+  margin-bottom: 34px;
+  opacity: 0;
+  transition: opacity 420ms ease;
+  pointer-events: none;
+}
+.dob-black-inner.dob-has-video .dob-black-video { opacity: 1; }
+.dob-black-inner.dob-has-video .dob-whale { display: none; }
+
+.dob-whale {
+  display: block;
+  fill: currentColor;
+}
+.dob-black .dob-whale {
+  width: 122px;
+  height: 122px;
+  color: #fff;
+  margin-bottom: 18px;
+}
+/* 中文机构名：两个名字同一套字（同字号 / 字重 / 字距），中间「·」连接 */
+.dob-black-zh {
+  font-family: var(--dob-zh);
+  font-size: 33px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: #f3ecdc;
+}
+.dob-black-en {
+  margin-top: 9px;
+  font-family: var(--dob-din);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  color: #cfc7ae;
+  transition: letter-spacing 1300ms cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+.dob-black-en.dob-tighten {
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+}
+
+/* 第一幕两行字下面的 loading······
+   这里原来是一枚圆圈加载指示；按使用者的要求把圆圈去掉，让这行字顶上来。
+   颜色写死而不用令牌：这块永远压在纯黑黑幕上，暖白主题的墨色令牌在这里会看不见。 */
+.dob-bootload {
+  display: flex;
+  align-items: baseline;
+  margin-top: 34px;
+  font-family: var(--dob-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: #7d7b69;
+  opacity: 0;
+  animation-name: dob-bootload-in;
+  animation-duration: 700ms;
+  animation-duration: calc(700ms / var(--dob-speed, 1));
+  animation-delay: 400ms;
+  animation-delay: calc(400ms / var(--dob-speed, 1));
+  animation-timing-function: ease;
+  animation-fill-mode: forwards;
+}
+.dob-bootload i {
+  font-style: normal;
+  margin-left: 0.14em;
+  opacity: 0.18;
+  animation-name: dob-dot;
+  animation-duration: 1.4s;
+  animation-duration: calc(1.4s / var(--dob-speed, 1));
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.dob-bootload i:nth-child(1) { animation-delay: 0ms; }
+.dob-bootload i:nth-child(2) { animation-delay: 110ms; }
+.dob-bootload i:nth-child(3) { animation-delay: 220ms; }
+.dob-bootload i:nth-child(4) { animation-delay: 330ms; }
+.dob-bootload i:nth-child(5) { animation-delay: 440ms; }
+.dob-bootload i:nth-child(6) { animation-delay: 550ms; }
+@keyframes dob-bootload-in { to { opacity: 1; } }
+@keyframes dob-dot {
+  0%, 100% { opacity: 0.16; }
+  45% { opacity: 1; }
+}
+/* ── 横向故障带 ──────────────────────────────────────────────────────────
+   一条亮带自上而下扫过文字；带子压住文字的那一刻，整句原地换掉。
+   带子本身是"中间亮、上下透明"的横条 + 上下两条发白的硬边，再叠一点点
+   水平方向的色散。 */
+.dob-glitchband {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -18%;
+  height: 96px;
+  z-index: 41;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg,
+      rgba(240, 236, 222, 0) 0%,
+      rgba(240, 236, 222, 0.05) 24%,
+      rgba(240, 236, 222, 0.16) 48%,
+      rgba(240, 236, 222, 0.05) 74%,
+      rgba(240, 236, 222, 0) 100%);
+  box-shadow:
+    0 -1px 0 rgba(233, 226, 208, 0.34),
+    0 1px 0 rgba(233, 226, 208, 0.34);
+  mix-blend-mode: screen;
+}
+.dob-glitchband.dob-go {
+  animation: dob-band-run 820ms cubic-bezier(0.34, 0, 0.32, 1) 1;
+}
+@keyframes dob-band-run {
+  0% { top: -18%; opacity: 0; }
+  14% { opacity: 1; }
+  82% { opacity: 0.9; }
+  100% { top: 104%; opacity: 0; }
+}
+
+/* 状态行里那条小一号的换词带：只覆盖状态行，不做整屏扫 */
+.dob-band {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 50%;
+  height: 62px;
+  margin-top: -31px;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg,
+      rgba(240, 236, 222, 0) 0%,
+      rgba(240, 236, 222, 0.07) 26%,
+      rgba(240, 236, 222, 0.2) 50%,
+      rgba(240, 236, 222, 0.07) 74%,
+      rgba(240, 236, 222, 0) 100%);
+  box-shadow:
+    0 -1px 0 rgba(233, 226, 208, 0.4),
+    0 1px 0 rgba(233, 226, 208, 0.4);
+  mix-blend-mode: screen;
+}
+.dob-band.dob-go {
+  animation: dob-band-local 400ms cubic-bezier(0.3, 0.9, 0.2, 1) 1;
+}
+@keyframes dob-band-local {
+  0% { opacity: 0; transform: translateY(-150%) scaleX(0.96); }
+  18% { opacity: 1; }
+  62% { opacity: 1; transform: translateY(0) scaleX(1); }
+  100% { opacity: 0; transform: translateY(150%) scaleX(1.02); }
+}
+
+.dob-flash {
+  position: absolute;
+  inset: 0;
+  background: var(--dob-flash-bg);
+  opacity: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* ── 品牌块（左上角）──────────────────────────────────────────────────── */
+/* 黑幕结束后统一"滑到位"：左侧文字从 -22px 滑入，右侧元素从 +18px 滑入，
+   按 60ms 一档错开；不再用裁剪式擦除 */
+.dob-brand {
+  position: absolute;
+  left: 46px;
+  top: 44px;
+  z-index: 20;
+  color: var(--dob-ink);
+}
+.dob-brand-1,
+.dob-brand-2,
+.dob-brand-3 {
+  opacity: 0;
+  transform: translateX(-22px);
+  transition: opacity 560ms cubic-bezier(0.16, 0.84, 0.24, 1),
+    transform 560ms cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+/* 中文主标题：等宽字距的黑体，读起来像铭牌 */
+.dob-brand-1 {
+  font-family: var(--dob-zh);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.02;
+}
+/* 英文副标：窄体技术字 + 超宽字距 */
+.dob-brand-2 {
+  font-family: var(--dob-din);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+  margin-top: 7px;
+  color: var(--dob-ink-soft);
+}
+.dob-brand-3 {
+  font-family: var(--dob-zh);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.06;
+  letter-spacing: 0.3em;
+  margin-top: 4px;
+  color: var(--dob-ink-soft);
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.dob-brand-3 b { font-weight: 500; }
+.dob-brand.dob-in .dob-brand-1 { opacity: 1; transform: none; transition-delay: 60ms; }
+.dob-brand.dob-in .dob-brand-2 { opacity: 1; transform: none; transition-delay: 150ms; }
+.dob-brand.dob-in .dob-brand-3 { opacity: 1; transform: none; transition-delay: 240ms; }
+
+/* 中央状态区 */
+.dob-center {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 47%;
+  transform: translateY(-50%);
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  pointer-events: none;
+  transition: opacity 340ms ease;
+}
+/* 终幕时整块中央区（状态行 / 分隔线 / 标识板 / 虚线）必须整体退场，
+   否则会和 WELCOME 版式叠在一起 */
+.dob-center.dob-off { opacity: 0; }
+
+.dob-status {
+  position: relative;          /* 换词用的横向故障带挂在这上面 */
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--dob-din);
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  color: var(--dob-ink);
+  opacity: 0;
+  transition: opacity 340ms ease;
+  white-space: nowrap;
+}
+.dob-status.dob-in { opacity: 1; }
+.dob-status.dob-zhline {
+  font-family: var(--dob-zh);
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  font-size: 40px;
+}
+.dob-caret {
+  display: inline-block;
+  width: 15px;
+  height: 4px;
+  background: var(--dob-accent);
+  transform: translateY(3px);
+  opacity: 0;
+}
+.dob-caret.dob-on {
+  opacity: 1;
+  animation: dob-blink 1s steps(1, end) infinite;
+}
+@keyframes dob-blink { 50% { opacity: 0; } }
+
+.dob-sub-en {
+  margin-top: 14px;
+  font-family: var(--dob-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  color: var(--dob-ink-soft);
+  opacity: 0;
+  white-space: nowrap;
+}
+.dob-sub-en.dob-in { opacity: 1; }
+
+.dob-rule {
+  margin-top: 22px;
+  height: 1px;
+  width: 0;
+  background: var(--dob-hair);
+  transition: width 620ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.dob-rule.dob-in { width: min(560px, 42vw); }
+
+/* 中央标识板（静态标志）装配区 */
+.dob-logo {
+  margin-top: 26px;
+  height: 0;
+  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 420ms ease, height 420ms ease, margin-top 420ms ease;
+}
+.dob-logo.dob-in {
+  opacity: 1;
+  height: 170px;
+}
+.dob-logo svg {
+  width: 84px;
+  height: 84px;
+  color: var(--dob-ink);
+}
+/* 静态标志板：素材已经抠掉底板，只剩暖白标志本体 */
+.dob-plate-img {
+  display: block;
+  width: min(470px, 40vw);
+  height: auto;
+  filter: drop-shadow(0 0 20px rgba(233, 226, 208, 0.14));
+}
+.dob-plate-img[hidden] { display: none; }
+.dob-logolabel {
+  margin-top: 12px;
+  font-family: var(--dob-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: var(--dob-ink-soft);
+  text-align: center;
+  white-space: nowrap;
+}
+.dob-dots {
+  margin-top: 9px;
+  height: 2px;
+  width: 96px;
+  background-image: radial-gradient(circle, var(--dob-ink) 40%, transparent 42%);
+  background-size: 12px 2px;
+  background-repeat: repeat-x;
+  opacity: 0.5;
+}
+
+/* 右侧等宽信息行（对应参考片 "· ID CONFIRMED : JOYC"）
+   中央的静态标志板比原来的鲸鱼宽得多，所以这行要再往外让一段，不能压到板上。 */
+.dob-idline {
+  position: absolute;
+  left: calc(50% + 300px);
+  top: 49%;
+  transform: translateY(-50%) translateX(16px);
+  z-index: 22;
+  font-family: var(--dob-mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--dob-ink-soft);
+  opacity: 0;
+  transition: opacity 520ms ease, transform 520ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  transition-delay: 520ms;
+  white-space: nowrap;
+}
+.dob-idline.dob-in { opacity: 1; transform: translateY(-50%); }
+
+/* ── 环形准星（验证通过）───────────────────────────────────────────────── */
+/* 环居中、直径约 56vw，状态字落在环心里，两者是一个整体。
+   两段弧的缺口都留在正下方 6 点钟方向，底部字幕永远不会被压到。 */
+.dob-reticle {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: min(56vw, 86vh, 1040px);
+  height: min(56vw, 86vh, 1040px);
+  transform: translate(-50%, -50%);
+  z-index: 16;
+  opacity: 0;
+  transition: opacity 500ms ease;
+  pointer-events: none;
+}
+.dob-reticle.dob-in { opacity: 1; }
+.dob-reticle svg { width: 100%; height: 100%; overflow: visible; }
+.dob-ret-rot-a { transform-origin: 50% 50%; animation: dob-spin 9s linear infinite; }
+.dob-ret-rot-b { transform-origin: 50% 50%; animation: dob-spin 5.4s linear infinite reverse; }
+@keyframes dob-spin { to { transform: rotate(360deg); } }
+.dob-reticle .dob-ring-a { fill: none; stroke: var(--dob-ink); stroke-width: 6; }
+.dob-reticle .dob-ring-b { fill: none; stroke: var(--dob-accent); stroke-width: 2.2; opacity: 0.95; }
+.dob-reticle .dob-dot-a { fill: var(--dob-ink); }
+.dob-reticle .dob-dot-b { fill: var(--dob-accent); }
+.dob-reticle .dob-dot-o { fill: var(--dob-accent); }
+.dob-reticle .dob-bracket {
+  fill: none;
+  stroke: var(--dob-ink);
+  stroke-width: 1.6;
+  opacity: 0.85;
+}
+
+/* 读取阶段的十六进制瀑布：放到最空的上右区，不去和主体挤中间 */
+.dob-hex {
+  position: absolute;
+  right: 46px;
+  top: 22%;
+  width: 236px;
+  height: 148px;
+  overflow: hidden;
+  z-index: 19;
+  font-family: var(--dob-mono);
+  font-size: 10px;
+  line-height: 1.55;
+  letter-spacing: 0.06em;
+  color: var(--dob-ink-soft);
+  opacity: 0;
+  transition: opacity 320ms ease;
+  text-align: right;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000 74%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 22%, #000 74%, transparent);
+}
+.dob-hex.dob-in { opacity: 0.6; }
+
+/* ── 交互区 ─────────────────────────────────────────────────────────────── */
+.dob-action {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 60%;
+  z-index: 26;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 320ms ease;
+}
+.dob-action.dob-in {
+  opacity: 1;
+  pointer-events: auto;
+}
+.dob-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 26px;
+  border: 1px solid var(--dob-hair);
+  background: transparent;
+  color: var(--dob-ink);
+  font-family: var(--dob-din);
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: color 220ms ease, border-color 220ms ease;
+}
+.dob-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--dob-ink);
+  transform: translateX(-101%);
+  transition: transform 300ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.dob-btn:hover::before { transform: none; }
+.dob-btn:hover { color: var(--dob-box-ink); border-color: var(--dob-ink); }
+.dob-btn:hover .dob-btn-en { color: var(--dob-box-ink); opacity: 1; }
+.dob-btn > * { position: relative; z-index: 1; }
+.dob-btn:active { transform: translateY(1px); }
+.dob-btn-zh { font-family: var(--dob-zh); font-weight: 500; }
+.dob-btn-en { font-family: var(--dob-mono); font-size: 11px; letter-spacing: 0.24em; opacity: 0.62; }
+.dob-btn.dob-pulse { animation: dob-pulse 1.9s ease-in-out infinite; }
+@keyframes dob-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 177, 132, 0); }
+  50% { box-shadow: 0 0 0 7px rgba(200, 177, 132, 0.14); }
+}
+.dob-hint {
+  font-family: var(--dob-zh);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--dob-muted);
+}
+.dob-hint kbd {
+  font-family: var(--dob-mono);
+  border: 1px solid var(--dob-hair);
+  padding: 1px 5px;
+  margin: 0 3px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+/* 身份卡（第二步）：纯中文标签 + 数字 */
+.dob-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 300px;
+  padding: 2px 0;
+  border-top: 1px solid var(--dob-hair);
+  border-bottom: 1px solid var(--dob-hair);
+}
+/* 作者样式里的 display:flex 会盖掉 [hidden] 的 UA display:none，必须显式补一条，
+   否则第一步（只要按钮、不要卡片）会露出一条空的边框 */
+.dob-card[hidden] { display: none; }
+.dob-card-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 34px;
+  padding: 8px 2px;
+  font-family: var(--dob-zh);
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  color: var(--dob-muted);
+}
+.dob-card-row + .dob-card-row {
+  border-top: 1px solid var(--dob-hair-soft);
+}
+.dob-card-row b {
+  font-family: var(--dob-din);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--dob-ink);
+}
+.dob-card-row b.dob-zhname { font-family: var(--dob-zh); letter-spacing: 0.1em; }
+
+/* ── 终幕：WELCOME ─────────────────────────────────────────────────────── */
+.dob-welcome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 45%;
+  transform: translateY(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 420ms ease;
+}
+.dob-welcome.dob-in { opacity: 1; }
+.dob-w1 {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  color: var(--dob-ink);
+}
+.dob-w2 {
+  margin-top: 12px;
+  background: var(--dob-box-bg);
+  color: var(--dob-box-ink);
+  padding: 7px 16px 8px;
+  font-family: var(--dob-zh);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-indent: 0.08em;
+}
+/* 这一行是浅底深字，解析中的字形得反过来压暗才看得见 */
+.dob-w2 .dob-glyph { --dob-decode-ink: rgba(96, 90, 70, 0.85); }
+.dob-w3 {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.dob-w3 svg { width: 76px; height: 76px; color: var(--dob-ink); }
+/* 终幕的静态标志板（和授权序列同一张图，只是小一号） */
+.dob-w3-plate {
+  display: block;
+  width: min(340px, 34vw);
+  height: auto;
+  filter: drop-shadow(0 0 18px rgba(233, 226, 208, 0.12));
+}
+/* 暖白底板上标志本体是浅色的，直接放会糊掉：压暗成墨色 */
+.dob-light .dob-w3-plate { filter: brightness(0.07); }
+.dob-w3 span {
+  font-family: var(--dob-zh);
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  color: var(--dob-ink-soft);
+}
+.dob-w4 {
+  margin-top: 20px;
+  font-family: var(--dob-zh);
+  font-size: 15px;
+  letter-spacing: 0.28em;
+  text-indent: 0.28em;
+  color: var(--dob-ink);
+}
+
+/* 色散故障：复制层带 0.5px 模糊 + 分片 clip-path 位移 + 混合模式，
+   读起来像镜头色散而不是"三个字叠一起"。常态必须 opacity:0，
+   否则动画跑完红蓝副本会一直压在文字上。 */
+.dob-glitch { position: relative; }
+.dob-glitch[data-text]::before,
+.dob-glitch[data-text]::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(0.5px);
+  mix-blend-mode: var(--dob-glitch-blend);
+  clip-path: inset(0 0 100% 0);
+}
+.dob-glitch[data-text]::before { color: var(--dob-glitch-a); }
+.dob-glitch[data-text]::after { color: var(--dob-glitch-b); }
+/* 黑底白字那块要换成加色，否则在暖白底板上乘完是黑 */
+.dob-glitch.dob-glitch-box::before,
+.dob-glitch.dob-glitch-box::after { mix-blend-mode: screen; }
+
+.dob-glitch.dob-on::before { animation: dob-gx 430ms steps(3, end) 2 both; }
+.dob-glitch.dob-on::after { animation: dob-gy 430ms steps(3, end) 2 both; }
+@keyframes dob-gx {
+  0% { transform: translate(0, 0); opacity: 0; clip-path: inset(0 0 100% 0); }
+  14% { transform: translate(-3px, 0); opacity: 0.7; clip-path: inset(6% 0 68% 0); }
+  34% { transform: translate(2px, 0); opacity: 0.5; clip-path: inset(54% 0 28% 0); }
+  56% { transform: translate(-2px, 0); opacity: 0.6; clip-path: inset(22% 0 56% 0); }
+  80% { transform: translate(1px, 0); opacity: 0.32; clip-path: inset(72% 0 10% 0); }
+  100% { transform: none; opacity: 0; clip-path: inset(0 0 100% 0); }
+}
+@keyframes dob-gy {
+  0% { transform: translate(0, 0); opacity: 0; clip-path: inset(0 0 100% 0); }
+  14% { transform: translate(3px, 0); opacity: 0.7; clip-path: inset(62% 0 14% 0); }
+  34% { transform: translate(-2px, 0); opacity: 0.5; clip-path: inset(10% 0 66% 0); }
+  56% { transform: translate(2px, 0); opacity: 0.6; clip-path: inset(48% 0 34% 0); }
+  80% { transform: translate(-1px, 0); opacity: 0.32; clip-path: inset(30% 0 52% 0); }
+  100% { transform: none; opacity: 0; clip-path: inset(0 0 100% 0); }
+}
+
+/* ── 收尾：径向光晕 + 变形宽银幕光条 + 暗角 + 机位后撤 ─────────────────── */
+.dob-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 13;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms ease;
+  background: var(--dob-vignette-bg);
+}
+.dob-vignette.dob-in { opacity: 1; }
+
+/* 径向光晕：不是整屏糊白，而是从中心炸开一朵光 */
+.dob-bloom {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 128vmax;
+  height: 128vmax;
+  margin: -64vmax 0 0 -64vmax;
+  border-radius: 50%;
+  z-index: 62;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  background: radial-gradient(
+    circle,
+    rgba(var(--dob-bloom-c), 0.99) 0%,
+    rgba(var(--dob-bloom-c), 0.94) 22%,
+    rgba(var(--dob-bloom-c), 0.58) 44%,
+    rgba(var(--dob-bloom-c), 0.16) 62%,
+    rgba(var(--dob-bloom-c), 0) 78%
+  );
+}
+.dob-bloom.dob-go { animation: dob-bloom 1250ms cubic-bezier(0.22, 0.68, 0.2, 1) forwards; }
+@keyframes dob-bloom {
+  0% { opacity: 0; transform: scale(0.08); }
+  20% { opacity: 1; transform: scale(0.42); }
+  58% { opacity: 0.96; transform: scale(0.96); }
+  100% { opacity: 0; transform: scale(1.42); }
+}
+
+/* 变形宽银幕光条：横着抽出来的一条细光，光晕最亮那一刻扫过 */
+.dob-streak {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  height: 3px;
+  width: 0;
+  z-index: 63;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: blur(1px);
+  background: linear-gradient(
+    90deg,
+    rgba(var(--dob-bloom-c), 0) 0%,
+    rgba(var(--dob-bloom-c), 0.5) 34%,
+    rgba(var(--dob-bloom-c), 0.98) 50%,
+    rgba(var(--dob-bloom-c), 0.5) 66%,
+    rgba(var(--dob-bloom-c), 0) 100%
+  );
+}
+.dob-streak.dob-go { animation: dob-streak 1000ms cubic-bezier(0.2, 0.78, 0.2, 1) forwards; }
+@keyframes dob-streak {
+  0% { opacity: 0; width: 0; height: 1px; }
+  26% { opacity: 1; width: 62vw; height: 3px; }
+  60% { opacity: 0.6; width: 96vw; height: 2px; }
+  100% { opacity: 0; width: 132vw; height: 1px; }
+}
+
+/* 光晕最亮那一刻：文字带一点冷色光晕（halation），颗粒变粗。
+   注意别在 .dob-welcome 上加 filter —— 那会新建层叠上下文，
+   把色散层的 mix-blend-mode 隔离掉，故障会在中途"啪"地变回去。 */
+#dsh-orbit-root.dob-peak .dob-w1,
+#dsh-orbit-root.dob-peak .dob-w4 {
+  color: var(--dob-glitch-b);
+  text-shadow: var(--dob-peak-glow);
+  transition: color 260ms ease, text-shadow 260ms ease;
+}
+#dsh-orbit-root.dob-peak .dob-w3 svg {
+  filter: drop-shadow(0 0 10px rgba(127, 156, 142, 0.45));
+}
+#dsh-orbit-root.dob-peak .dob-w3-plate {
+  filter: drop-shadow(0 0 10px rgba(127, 156, 142, 0.45));
+}
+/* 暖白底板上标志本体本来就是浅色，halation 得让位给"压暗成墨色" */
+#dsh-orbit-root.dob-light.dob-peak .dob-w3-plate { filter: brightness(0.07); }
+#dsh-orbit-root.dob-peak .dob-grain { opacity: 0.14; }
+
+/* 揭幕：整个机位后撤 + 轻微失焦，比单纯淡出更有镜头感 */
+#dsh-orbit-root.dob-handoff {
+  transform: scale(1.035);
+  filter: blur(5px);
+  opacity: 0;
+  transition: opacity 780ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 780ms cubic-bezier(0.4, 0, 0.2, 1), filter 780ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── 页脚 / 字幕 / 进度条 ───────────────────────────────────────────────── */
+.dob-foot {
+  position: absolute;
+  right: 46px;
+  bottom: 52px;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--dob-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--dob-ink);
+  opacity: 0;
+  transform: translateX(18px);
+  transition: opacity 560ms ease, transform 560ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  transition-delay: 300ms;
+}
+.dob-foot.dob-in { opacity: 1; transform: none; }
+.dob-foot i {
+  display: block;
+  width: 0;
+  height: 7px;
+  background: var(--dob-accent);
+  transition: width 720ms cubic-bezier(0.2, 0.9, 0.2, 1) 460ms;
+}
+.dob-foot.dob-in i { width: 26px; }
+
+.dob-subtitle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 50px;
+  z-index: 24;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.dob-sub-zh {
+  font-family: var(--dob-zh);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: var(--dob-ink-soft);
+  text-shadow: var(--dob-sub-glow);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 420ms ease, transform 420ms cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+.dob-sub-zh.dob-in { opacity: 1; transform: none; }
+.dob-sub-en2 {
+  font-family: var(--dob-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--dob-muted);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 420ms ease, transform 420ms cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+.dob-sub-en2.dob-in { opacity: 0.85; transform: none; }
+
+/* 底部进度：收成中间一小段，不横贯整屏跟字幕抢注意力 */
+.dob-progress {
+  position: absolute;
+  left: 50%;
+  bottom: 11px;
+  width: min(420px, 32vw);
+  height: 3px;
+  transform: translateX(-50%);
+  z-index: 26;
+  background: var(--dob-hair-soft);
+}
+.dob-progress::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 5px;
+  background-image: repeating-linear-gradient(90deg, var(--dob-hair) 0 1px, transparent 1px 30px);
+  background-size: auto 5px;
+  background-position: 0 100%;
+  background-repeat: repeat-x;
+  opacity: 0.8;
+}
+.dob-progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--dob-ink);
+  box-shadow: inset -2px 0 0 var(--dob-accent);
+  transition: width 460ms cubic-bezier(0.3, 0.9, 0.25, 1);
+}
+.dob-progress.dob-accent i { background: var(--dob-accent); }
+
+/* 阶段计数（左下） */
+.dob-stepcount {
+  position: absolute;
+  left: 46px;
+  bottom: 52px;
+  z-index: 24;
+  font-family: var(--dob-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--dob-muted);
+  opacity: 0;
+  transform: translateX(-18px);
+  transition: opacity 560ms ease, transform 560ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  transition-delay: 400ms;
+}
+.dob-stepcount.dob-in { opacity: 1; transform: none; }
+
+/* 跳过 */
+.dob-skip {
+  position: absolute;
+  right: 46px;
+  top: 48px;
+  z-index: 30;
+  font-family: var(--dob-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--dob-muted);
+  border: 1px solid transparent;
+  padding: 5px 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 400ms ease, color 200ms ease, border-color 200ms ease;
+}
+.dob-skip.dob-in { opacity: 1; }
+.dob-skip:hover { color: var(--dob-ink); border-color: var(--dob-hair); }
+.dob-skip[hidden] { display: none; }
+
+/* ── 机框装饰层（只贴边，不占中间）────────────────────────────────────── */
+.dob-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 17;
+  pointer-events: none;
+}
+
+.dob-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+  transition: opacity 640ms ease, transform 640ms cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+.dob-corner::before,
+.dob-corner::after { content: ""; position: absolute; background: var(--dob-hair); }
+.dob-corner::before { width: 100%; height: 1px; }
+.dob-corner::after { width: 1px; height: 100%; }
+.dob-c-tl { left: 26px; top: 26px; transform: translate(-10px, -10px); }
+.dob-c-tl::before { top: 0; left: 0; }
+.dob-c-tl::after { top: 0; left: 0; }
+.dob-c-tr { right: 26px; top: 26px; transform: translate(10px, -10px); }
+.dob-c-tr::before { top: 0; right: 0; }
+.dob-c-tr::after { top: 0; right: 0; }
+.dob-c-bl { left: 26px; bottom: 26px; transform: translate(-10px, 10px); }
+.dob-c-bl::before { bottom: 0; left: 0; }
+.dob-c-bl::after { bottom: 0; left: 0; }
+.dob-c-br { right: 26px; bottom: 26px; transform: translate(10px, 10px); }
+.dob-c-br::before { bottom: 0; right: 0; }
+.dob-c-br::after { bottom: 0; right: 0; }
+.dob-frame.dob-in .dob-corner { opacity: 1; transform: none; }
+.dob-frame.dob-in .dob-c-tr { transition-delay: 90ms; }
+.dob-frame.dob-in .dob-c-br { transition-delay: 180ms; }
+.dob-frame.dob-in .dob-c-bl { transition-delay: 270ms; }
+
+/* 一次性扫描线：底板洗白之后自上而下扫一遍，验准时再扫一次 */
+.dob-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -14%;
+  height: 96px;
+  opacity: 0;
+  background: var(--dob-scanline-bg);
+}
+.dob-scanline.dob-go { animation: dob-scan 2600ms cubic-bezier(0.42, 0, 0.58, 1) 1; }
+@keyframes dob-scan {
+  0% { top: -14%; opacity: 0; }
+  10% { opacity: 1; }
+  86% { opacity: 1; }
+  100% { top: 102%; opacity: 0; }
+}
+
+/* 品牌块下方的一行小字：版本 + 实时时钟（时钟点亮强调色） */
+.dob-meta {
+  position: absolute;
+  left: 46px;
+  top: 170px;
+  z-index: 20;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--dob-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--dob-muted);
+  opacity: 0;
+  transform: translateX(-18px);
+  transition: opacity 560ms ease, transform 560ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  transition-delay: 330ms;
+}
+.dob-meta.dob-in { opacity: 1; transform: none; }
+.dob-meta-2 { color: var(--dob-accent); }
+
+/* 六个阶段格：横排在左栏小字下面，走过的压暗、当前的点亮并拉长 */
+.dob-slats {
+  position: absolute;
+  left: 46px;
+  top: 196px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0;
+  transform: translateX(-18px);
+  transition: opacity 560ms ease, transform 560ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  transition-delay: 420ms;
+}
+.dob-slats.dob-in { opacity: 1; transform: none; }
+.dob-slat {
+  width: 20px;
+  height: 2px;
+  background: var(--dob-hair);
+  transition: width 460ms cubic-bezier(0.3, 0.9, 0.25, 1), background-color 320ms ease,
+    opacity 320ms ease;
+}
+.dob-slat.dob-past { background: var(--dob-ink); opacity: 0.3; }
+.dob-slat.dob-on { width: 34px; background: var(--dob-accent); opacity: 1; }
+
+/* 女声播报指示条：出声时点亮强调色并跳动 */
+.dob-voice {
+  position: absolute;
+  left: 46px;
+  bottom: 96px;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+  opacity: 0;
+  transition: opacity 560ms ease;
+  transition-delay: 480ms;
+}
+.dob-voice.dob-in { opacity: 1; }
+.dob-voice i {
+  width: 2px;
+  height: 20%;
+  background: var(--dob-hair);
+  transition: height 140ms ease, background-color 240ms ease;
+}
+.dob-voice.dob-on i {
+  background: var(--dob-accent);
+  animation: dob-voice 560ms ease-in-out infinite;
+}
+.dob-voice i:nth-child(1) { animation-delay: 0ms; }
+.dob-voice i:nth-child(2) { animation-delay: 90ms; }
+.dob-voice i:nth-child(3) { animation-delay: 180ms; }
+.dob-voice i:nth-child(4) { animation-delay: 60ms; }
+.dob-voice i:nth-child(5) { animation-delay: 140ms; }
+@keyframes dob-voice {
+  0%, 100% { height: 20%; }
+  50% { height: 100%; }
+}
+
+/* 窄窗口里右侧那行等宽小字会和环撞上，直接收掉 */
+@media (max-width: 1180px) {
+  .dob-idline { display: none; }
+}
+
+/* 窄窗口里中央标志板收窄一档，别顶到两侧的机框装饰 */
+@media (max-width: 900px) {
+  .dob-plate-img { width: min(420px, 62vw); }
+  .dob-logo.dob-in { height: 150px; }
+  .dob-black-video { width: 78vw; }
+  .dob-w3-plate { width: 78vw; }
+}
+
+/* 无障碍：尊重系统"减少动态效果" */
+@media (prefers-reduced-motion: reduce) {
+  #dsh-orbit-root .dob-ret-rot-a,
+  #dsh-orbit-root .dob-ret-rot-b { animation: none; }
+  #dsh-orbit-root .dob-scanline.dob-go { animation: none; }
+  /* 加载指示停下来也要看得见，所以是停转而不是隐藏 */
+  #dsh-orbit-root .dob-bootload { opacity: 1; animation: none; }
+  #dsh-orbit-root .dob-bootload i { opacity: 0.55; animation: none; }
+  /* 轨道环与光点停转、星野不再闪；拉丝与故障带这类"晃眼"的整段收掉 */
+  #dsh-orbit-root .dob-ring,
+  #dsh-orbit-root .dob-runner,
+  #dsh-orbit-root .dob-ellipse.dob-in,
+  #dsh-orbit-root .dob-star { animation: none; }
+  #dsh-orbit-root .dob-star { opacity: 0.5; }
+  #dsh-orbit-root .dob-warp,
+  #dsh-orbit-root .dob-glitchband.dob-go,
+  #dsh-orbit-root .dob-band.dob-go { display: none; }
+}

@@ -1,0 +1,56 @@
+{
+  "name": "dsh-orbit-boot",
+  "version": "0.2.0",
+  "description": "DeepSeek Harness 开屏动画插件：黑幕标识动效 → 光速拉丝转场 → 深色复古未来主义底板 → 六步授权序列（需要访问许可 / 身份资料确认 / 接收访问需求 / 开始读取权限 / 读取完毕·核验通过 / 欢迎访问）。两套动效风格可在设置页切换：轨道（乱码收敛解码 + 横向故障带原地换词 + 同心轨道环 + 星野）/ 经典（逐字渐显 + 掠光 + 过曝洗白）。语音沿用包内的真声台词，界面音效取自同一批素材，取不到时自动回落到浏览器合成。web profile 与 DeepSeek Harness Desktop 通用。",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "deepseek-harness-desktop",
+    "startup",
+    "splash",
+    "boot-animation",
+    "orbit",
+    "retro-futurism"
+  ],
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "test",
+    "preview/index.html",
+    "tools",
+    "docs",
+    "open-preview.sh",
+    "打开预览.cmd",
+    "cordis.patch.yml",
+    "README.md",
+    "INSTALL.md",
+    "CHANGELOG.md",
+    "THIRD-PARTY.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/smoke-host.mjs && node test/smoke-splash.mjs && node test/smoke-client.mjs && node test/smoke-desktop-boot.mjs"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    }
+  }
+}
